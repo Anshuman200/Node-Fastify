@@ -1,6 +1,21 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendInstance: Resend | null = null;
+
+/**
+ * Lazy-initializes the Resend client to prevent startup crashes if the API key is missing.
+ */
+const getResendClient = () => {
+    if (resendInstance) return resendInstance;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        return null;
+    }
+
+    resendInstance = new Resend(apiKey);
+    return resendInstance;
+};
 
 interface SendEmailParams {
     to: string;
@@ -10,6 +25,13 @@ interface SendEmailParams {
 
 export const sendEmail = async ({ to, subject, html }: SendEmailParams) => {
     try {
+        const resend = getResendClient();
+
+        if (!resend) {
+            console.error("❌ Email service failed: RESEND_API_KEY is missing.");
+            return { success: false, error: "Missing API key" };
+        }
+
         const { data, error } = await resend.emails.send({
             from: "Learn App <onboarding@resend.dev>",
             to,

@@ -8,12 +8,13 @@ export const MESSAGES = {
     USER_NOT_FOUND: "User not found",
     USERS_NOT_FOUND: "No users found matching the provided names",
     USER_ALREADY_EXISTS: "User already exists",
-    VALIDATION_ALL_FIELDS_REQUIRED: "Name, email and userName are required",
+    VALIDATION_ALL_FIELDS_REQUIRED: "All fields are required",
     VALIDATION_INVALID_INPUT: "Invalid input",
     VALIDATION_DUPLICATE_FIELD: "Duplicate field value",
+    VALIDATION_LOGIN_FIELDS_REQUIRED: "Email and password are required",
 
     // ADMIN
-    ADMIN:{
+    ADMIN: {
         ADMIN_NOT_FOUND: "Admin not found",
         ADMIN_LOGIN_SUCCESS: "Admin logged in successfully",
         INVALID_CREDENTIALS: "Invalid credentials",

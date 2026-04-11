@@ -27,3 +27,8 @@ export const DOCS_AUTH = {
 } as const;
 
 export const MAX_REQUEST_PER_MINUTE = 100;
+
+export const AWS_CONFIG = {
+    REGION: process.env.AWS_REGION || "ap-south-1",
+    SECRET_NAME: process.env.AWS_SECRET_NAME || "fastify-redis"
+} as const;

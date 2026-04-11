@@ -14,7 +14,7 @@ export default fp(async function (fastify: FastifyInstance) {
         try {
             await request.jwtVerify();
         } catch (err: any) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Unauthorized: Please provide a valid token", err.message);
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Unauthorized: Please provide a valid token", error: err.message });
         }
     });
 
@@ -22,10 +22,10 @@ export default fp(async function (fastify: FastifyInstance) {
         try {
             await request.jwtVerify();
             if (request.user.userType !== USER_TYPES.ADMIN && request.user.userType !== (USER_TYPES as any).SUB_ADMIN) {
-                return sendError(reply, HTTP_STATUS.FORBIDDEN, "Access Denied: Admin privileges required");
+                return sendError({ reply, statusCode: HTTP_STATUS.FORBIDDEN, message: "Access Denied: Admin privileges required" });
             }
         } catch (err: any) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Unauthorized: Please provide a valid admin token", err.message);
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Unauthorized: Please provide a valid admin token", error: err.message });
         }
     });
 
@@ -33,10 +33,10 @@ export default fp(async function (fastify: FastifyInstance) {
         try {
             await request.jwtVerify();
             if (request.user.userType !== USER_TYPES.USER && request.user.userType !== USER_TYPES.GUEST) {
-                return sendError(reply, HTTP_STATUS.FORBIDDEN, "Access Denied: Standard user privileges required");
+                return sendError({ reply, statusCode: HTTP_STATUS.FORBIDDEN, message: "Access Denied: Standard user privileges required" });
             }
         } catch (err: any) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Unauthorized: Please provide a valid user token", err.message);
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Unauthorized: Please provide a valid user token", error: err.message });
         }
     });
 });

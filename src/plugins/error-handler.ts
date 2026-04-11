@@ -12,6 +12,11 @@ export default fp(async function (fastify: FastifyInstance) {
             fastify.log.error(error);
         }
 
-        return sendError(reply, statusCode, message, (process.env as any).NODE_ENV === "development" ? error.stack : undefined);
+        return sendError({ 
+            reply, 
+            statusCode, 
+            message, 
+            error: (process.env as any).NODE_ENV === "development" ? error.stack : undefined 
+        });
     });
 });

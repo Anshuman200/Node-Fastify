@@ -37,10 +37,10 @@ const adminSchema: Schema<IAdmin> = new mongoose.Schema(
     },
     userName: {
       type: String,
-      required: true,
       unique: true,
       trim: true,
       lowercase: true,
+      sparse: true,
     },
     password: {
       type: String,
@@ -83,13 +83,19 @@ const adminSchema: Schema<IAdmin> = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-// 🔥 1. Password Hashing
-adminSchema.pre<IAdmin>("save", async function (next: any) {
+// 🔥 1. Password Hashing & Username Generation
+adminSchema.pre<IAdmin>("save", async function () {
   if (this.isModified("password")) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }
-  next();
+
+  // 🔥 Auto-generate userName if missing
+  if (!this.userName) {
+    const emailPrefix = this.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    const suffix = this._id.toString().slice(-6);
+    this.userName = `${emailPrefix}_${suffix}`;
+  }
 });
 
 // 🔥 2. Compare Password Method

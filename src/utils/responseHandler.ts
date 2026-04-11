@@ -8,7 +8,7 @@ import { HTTP_STATUS } from "../constants/httpStatusCodes.js";
  * @param {string} message - Success message
  * @param {object} data - Payload data (optional)
  */
-export const sendSuccess = (reply: FastifyReply, statusCode: number = HTTP_STATUS.OK, message: string, data: any = {}) => {
+export const sendSuccess = ({ reply, statusCode = HTTP_STATUS.OK, message, data = {} }: { reply: FastifyReply, statusCode?: number, message: string, data?: any }) => {
     return reply.status(statusCode).send({
         success: true,
         message,
@@ -23,7 +23,7 @@ export const sendSuccess = (reply: FastifyReply, statusCode: number = HTTP_STATU
  * @param {string} message - Error message
  * @param {any} error - Error details (optional)
  */
-export const sendError = (reply: FastifyReply, statusCode: number = HTTP_STATUS.INTERNAL_SERVER_ERROR, message: string, error: any = null) => {
+export const sendError = ({ reply, statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR, message, error = null }: { reply: FastifyReply, statusCode?: number, message: string, error?: any }) => {
     const errorResponse: { success: boolean; message: string; error?: any } = {
         success: false,
         message,

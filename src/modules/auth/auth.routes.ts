@@ -28,13 +28,11 @@ export default async function authRoutes(app: FastifyInstance) {
             summary: 'Sign up a new user',
             body: {
                 type: 'object',
-                required: ['name', 'email', 'userName', 'password'],
+                required: ['name', 'email', 'password'],
                 properties: {
                     name: { type: 'string' },
                     email: { type: 'string', format: 'email' },
-                    userName: { type: 'string' },
-                    password: { type: 'string' },
-                    userType: { type: 'string', enum: [USER_TYPES.USER], default: USER_TYPES.USER }
+                    password: { type: 'string',  },
                 }
             }
         }

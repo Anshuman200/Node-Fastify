@@ -44,6 +44,7 @@ const buildApp = async (): Promise<FastifyInstance> => {
         logger: {
             level: "info"
         },
+        trustProxy: true,
         bodyLimit: 1048576 * 100,
         connectionTimeout: 30000,
         requestIdHeader: "x-request-id"
@@ -78,6 +79,10 @@ const buildApp = async (): Promise<FastifyInstance> => {
     await seedAdmin(app.log);
     await app.register(redisPlugin);
 
+    //   // 4. Utility Plugins
+    //   await app.register(fastifyMultipart, {
+    //     limits: { fileSize: MAX_FILE_SIZE }
+    //   });
     /**
      * 🔹 4. Auth & Rate Limit
      */

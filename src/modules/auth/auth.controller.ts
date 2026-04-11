@@ -22,7 +22,6 @@ interface LoginBody {
 interface SignupBody {
     name?: string;
     email?: string;
-    userName?: string;
     password?: string;
 }
 
@@ -63,32 +62,36 @@ export const loginUser = async (req: FastifyRequest<any>, reply: FastifyReply) =
         const password = toTrim(body.password);
 
         if (!email || !password) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, MESSAGES.VALIDATION_ALL_FIELDS_REQUIRED);
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: MESSAGES.VALIDATION_LOGIN_FIELDS_REQUIRED });
         }
 
         const user = await UserModels.findOne({ email });
 
         if (!user) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Invalid credentials");
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Invalid credentials" });
         }
 
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Invalid credentials");
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Invalid credentials" });
         }
 
-        if (user.status !== ACCOUNT_STATUS.ACTIVE) {
-            return sendError(reply, HTTP_STATUS.FORBIDDEN, `Your account is ${user.status}. Please contact support.`);
+        if (user.status === ACCOUNT_STATUS.DELETE) {
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: `Your account is ${user.status}. Please contact support.`, error: { isAccountDeleted: true } });
+        }
+
+        if (user.status === ACCOUNT_STATUS.PENDING) {
+            return sendError({ reply, statusCode: HTTP_STATUS.FORBIDDEN, message: "Your email verification is pending. Please verify your email before logging in", error: { isEmailVerificationPending: true } });
         }
 
         if (!user.isEmailVerified) {
-            return sendError(reply, HTTP_STATUS.FORBIDDEN, "Please verify your email before logging in");
+            return sendError({ reply, statusCode: HTTP_STATUS.FORBIDDEN, message: "Please verify your email before logging in", error: { isEmailNotVerified: true } });
         }
 
         const { accessToken, refreshToken } = generateTokens(req.server.jwt, user);
 
         // 🔥 Store refresh token in Redis using userName
-        await setCachedData(req.server.redis, `refreshToken:${user.userName}`, refreshToken, JWT_EXPIRY.REFRESH_TOKEN_REDIS);
+        await setCachedData(req.server.redis, `refreshToken:${(user.userName || user.email)}`, refreshToken, JWT_EXPIRY.REFRESH_TOKEN_REDIS);
 
         user.lastLogin = new Date();
         user.isActive = true;
@@ -96,26 +99,30 @@ export const loginUser = async (req: FastifyRequest<any>, reply: FastifyReply) =
 
         const userResponse = formatEntityResponse(user);
 
-        return sendSuccess(reply, HTTP_STATUS.OK, "Login successful", {
-            accessToken,
-            refreshToken,
-            user: userResponse
+        return sendSuccess({
+            reply,
+            statusCode: HTTP_STATUS.OK,
+            message: "Login successful",
+            data: {
+                accessToken,
+                refreshToken,
+                user: userResponse
+            }
         });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.INTERNAL_SERVER_ERROR, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: error.message });
     }
 };
 
 export const signup = async (req: FastifyRequest<any>, reply: FastifyReply) => {
     try {
-        const { name, email, userName, password } = req.body as SignupBody;
+        const { name, email, password } = req.body as SignupBody;
         const normalizedEmail = toTrimAndLower(email);
-        const normalizedUserName = toTrimAndLower(userName);
         const normalizedName = toTrim(name);
         const normalizedPassword = toTrim(password);
 
-        if (!normalizedName || !normalizedEmail || !normalizedUserName || !normalizedPassword) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, MESSAGES.VALIDATION_ALL_FIELDS_REQUIRED);
+        if (!normalizedName || !normalizedEmail || !normalizedPassword) {
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: MESSAGES.VALIDATION_ALL_FIELDS_REQUIRED });
         }
 
         const { otp, otpExpires } = generateOtp();
@@ -123,9 +130,8 @@ export const signup = async (req: FastifyRequest<any>, reply: FastifyReply) => {
         const newUser = await UserModels.create({
             name: normalizedName,
             email: normalizedEmail,
-            userName: normalizedUserName,
             password: normalizedPassword,
-            status: ACCOUNT_STATUS.PENDING,
+            status: ACCOUNT_STATUS.ACTIVE,
             isEmailVerified: false,
             otp,
             otpExpires,
@@ -135,13 +141,13 @@ export const signup = async (req: FastifyRequest<any>, reply: FastifyReply) => {
         await sendVerificationEmail(newUser.email, otp);
 
         const userResponse = formatEntityResponse(newUser);
-        return sendSuccess(reply, HTTP_STATUS.CREATED, "Registration successful. Please verify your email.", { user: userResponse });
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.CREATED, message: "Registration successful. Please verify your email.", data: { user: userResponse } });
     } catch (error: any) {
         if (error.code === 11000) {
             const duplicateField = error.keyValue ? Object.keys(error.keyValue)[0] : "User";
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, `${duplicateField} already exists`);
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: `${duplicateField} already exists` });
         }
-        return sendError(reply, HTTP_STATUS.INTERNAL_SERVER_ERROR, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: error.message });
     }
 };
 
@@ -152,16 +158,16 @@ export const verifyOtp = async (req: FastifyRequest<any>, reply: FastifyReply) =
         const otp = toTrimAndNumber(body.otp).toString();
 
         if (!email || !otp) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, "Email and OTP are required");
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Email and OTP are required" });
         }
 
         const result = await authService.verifyOtpService(UserModels, email, otp);
         if (result.success) {
             await invalidateCache(req.server.redis);
-            return sendSuccess(reply, HTTP_STATUS.OK, "Email verified successfully. You can now login.");
+            return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Email verified successfully. You can now login." });
         }
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.BAD_REQUEST, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: error.message });
     }
 };
 
@@ -170,13 +176,13 @@ export const resendOtp = async (req: FastifyRequest<any>, reply: FastifyReply) =
         const { email } = req.body as ResendOtpBody;
         const normalizedEmail = toTrimAndLower(email);
 
-        if (!normalizedEmail) return sendError(reply, HTTP_STATUS.BAD_REQUEST, "Email is required");
+        if (!normalizedEmail) return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Email is required", error: { isEmailRequired: true } });
 
         const user = await UserModels.findOne({ email: normalizedEmail });
-        if (!user) return sendError(reply, HTTP_STATUS.NOT_FOUND, "User not found");
+        if (!user) return sendError({ reply, statusCode: HTTP_STATUS.NOT_FOUND, message: "User not found", error: { isUserNotFound: true } });
 
         if (user.isEmailVerified) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, "Email is already verified");
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Email is already verified", error: { isEmailVerified: true } });
         }
 
         const { otp, otpExpires } = generateOtp();
@@ -186,9 +192,9 @@ export const resendOtp = async (req: FastifyRequest<any>, reply: FastifyReply) =
 
         await sendVerificationEmail(user.email, otp);
 
-        return sendSuccess(reply, HTTP_STATUS.OK, "New OTP sent to your email");
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "New OTP sent to your email", data: { isOtpSent: true } });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.INTERNAL_SERVER_ERROR, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: error.message, error: { isOtpSent: false } });
     }
 };
 
@@ -197,7 +203,7 @@ export const refreshToken = async (req: FastifyRequest<any>, reply: FastifyReply
         const { refreshToken } = req.body as RefreshTokenBody;
 
         if (!refreshToken) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, "Refresh token is required");
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Refresh token is required", error: { isRefreshTokenRequired: true } });
         }
 
         const decoded: any = await req.server.jwt.verify(refreshToken);
@@ -206,24 +212,30 @@ export const refreshToken = async (req: FastifyRequest<any>, reply: FastifyReply
         const storedToken = await getCachedData(req.server.redis, `refreshToken:${userName}`);
 
         if (!storedToken || storedToken !== refreshToken) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Invalid or expired refresh token");
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Invalid or expired refresh token", error: { isRefreshTokenInvalid: true } });
         }
 
         const user = await UserModels.findOne({ userName });
         if (!user) {
-            return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "User not found");
+            return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "User not found", error: { isUserNotFound: true } });
         }
 
         const tokens = generateTokens(req.server.jwt, user);
 
         await setCachedData(req.server.redis, `refreshToken:${user.userName}`, tokens.refreshToken, JWT_EXPIRY.REFRESH_TOKEN_REDIS);
 
-        return sendSuccess(reply, HTTP_STATUS.OK, "Token refreshed successfully", {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken
+        return sendSuccess({
+            reply,
+            statusCode: HTTP_STATUS.OK,
+            message: "Token refreshed successfully",
+            data: {
+                isNewToken: true,
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+            }
         });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.UNAUTHORIZED, "Invalid refresh token");
+        return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Invalid refresh token" });
     }
 };
 
@@ -239,9 +251,9 @@ export const logoutUser = async (req: FastifyRequest, reply: FastifyReply) => {
 
         await deleteCachedData(req.server.redis, `refreshToken:${userName}`);
 
-        return sendSuccess(reply, HTTP_STATUS.OK, "Logged out successfully");
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Logged out successfully" });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.INTERNAL_SERVER_ERROR, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: error.message });
     }
 };
 
@@ -250,12 +262,12 @@ export const forgotPassword = async (req: FastifyRequest<any>, reply: FastifyRep
         const { email } = req.body as ForgotPasswordBody;
         const normalizedEmail = toTrimAndLower(email);
 
-        if (!normalizedEmail) return sendError(reply, HTTP_STATUS.BAD_REQUEST, "Email is required");
+        if (!normalizedEmail) return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Email is required" });
 
         await authService.forgotPasswordService(UserModels, normalizedEmail);
-        return sendSuccess(reply, HTTP_STATUS.OK, "Reset OTP sent to your email");
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Reset OTP sent to your email" });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.BAD_REQUEST, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: error.message });
     }
 };
 
@@ -267,13 +279,13 @@ export const resetPassword = async (req: FastifyRequest<any>, reply: FastifyRepl
         const normalizedPassword = toTrim(newPassword);
 
         if (!normalizedEmail || !normalizedOtp || !normalizedPassword) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, "All fields are required");
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "All fields are required" });
         }
 
         await authService.resetPasswordService(UserModels, normalizedEmail, normalizedOtp, normalizedPassword);
-        return sendSuccess(reply, HTTP_STATUS.OK, "Password reset successfully");
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Password reset successfully" });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.BAD_REQUEST, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: error.message });
     }
 };
 
@@ -283,16 +295,16 @@ export const changePassword = async (req: FastifyRequest<any>, reply: FastifyRep
         const { userName } = req.user;
 
         if (!oldPassword || !newPassword) {
-            return sendError(reply, HTTP_STATUS.BAD_REQUEST, "Old and new passwords are required");
+            return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Old and new passwords are required" });
         }
 
         const user = await UserModels.findOne({ userName });
-        if (!user) return sendError(reply, HTTP_STATUS.NOT_FOUND, "User profile not found");
+        if (!user) return sendError({ reply, statusCode: HTTP_STATUS.NOT_FOUND, message: "User profile not found" });
 
         await authService.changePasswordService(user, toTrim(oldPassword), toTrim(newPassword));
-        return sendSuccess(reply, HTTP_STATUS.OK, "Password changed successfully");
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Password changed successfully" });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.BAD_REQUEST, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: error.message });
     }
 };
 
@@ -302,13 +314,13 @@ export const getMeUser = async (req: FastifyRequest, reply: FastifyReply) => {
         const user = await UserModels.findOne({ userName }).lean();
 
         if (!user) {
-            return sendError(reply, HTTP_STATUS.NOT_FOUND, "User profile not found");
+            return sendError({ reply, statusCode: HTTP_STATUS.NOT_FOUND, message: "User profile not found" });
         }
 
         const response = formatEntityResponse(user);
-        return sendSuccess(reply, HTTP_STATUS.OK, "User profile fetched successfully", { profile: response });
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "User profile fetched successfully", data: { profile: response } });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.INTERNAL_SERVER_ERROR, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: error.message });
     }
 };
 
@@ -318,12 +330,12 @@ export const getMeAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
         const admin = await AdminModels.findOne({ userName }).lean();
 
         if (!admin) {
-            return sendError(reply, HTTP_STATUS.NOT_FOUND, "Admin profile not found");
+            return sendError({ reply, statusCode: HTTP_STATUS.NOT_FOUND, message: "Admin profile not found" });
         }
 
         const response = formatEntityResponse(admin);
-        return sendSuccess(reply, HTTP_STATUS.OK, "Admin profile fetched successfully", { profile: response });
+        return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Admin profile fetched successfully", data: { profile: response } });
     } catch (error: any) {
-        return sendError(reply, HTTP_STATUS.INTERNAL_SERVER_ERROR, error.message);
+        return sendError({ reply, statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: error.message });
     }
 };

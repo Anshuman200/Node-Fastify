@@ -37,10 +37,10 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     },
     userName: {
       type: String,
-      required: true,
       unique: true,
       trim: true,
       lowercase: true,
+      sparse: true, // Allow multiple nulls if necessary, though hook will fill it
     },
     isActive: {
       type: Boolean,
@@ -86,28 +86,32 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
 // Compound index for filtering by status + isActive together
 userSchema.index({ status: 1, isActive: 1 });
 
-userSchema.pre<IUser>("save", async function (next: any) {
+userSchema.pre<IUser>("save", async function () {
   if (this.isModified("email")) {
     this.email = this.email.toLowerCase().trim();
   }
 
-  if (this.isModified("userName")) {
+  if (this.isModified("userName") && this.userName) {
     this.userName = this.userName.toLowerCase().trim();
+  }
+
+  // 🔥 Auto-generate userName if missing
+  if (!this.userName) {
+    const emailPrefix = this.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    const suffix = this._id.toString().slice(-6); // Use last 6 chars of ObjectId for brevity but uniqueness
+    this.userName = `${emailPrefix}_${suffix}`;
   }
 
   if (this.isModified("password")) {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(this.password)) {
-      return next(
-        new Error(
+      throw new Error(
           "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character"
-        )
-      );
+        );
     }
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }
-  next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
