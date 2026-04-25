@@ -71,4 +71,4 @@ export default fp(async function (fastify: FastifyInstance) {
             return sendError({ reply, statusCode: HTTP_STATUS.UNAUTHORIZED, message: "Unauthorized: Please provide a valid user session or token", error: err.message });
         }
     });
-});
+}, { name: "jwt" });

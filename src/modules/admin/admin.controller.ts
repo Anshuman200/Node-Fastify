@@ -282,7 +282,7 @@ export const forgotPassword = async (req: FastifyRequest<{ Body: { email: string
 
         if (!email) return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: "Email is required" });
 
-        const result = await authService.forgotPasswordService(AdminModels, email);
+        const result = await authService.forgotPasswordService(req.server, AdminModels, email);
         return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: result.message });
     } catch (error: any) {
         return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: error.message });

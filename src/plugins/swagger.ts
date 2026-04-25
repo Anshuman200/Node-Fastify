@@ -19,7 +19,7 @@ export default fp(async function swaggerPlugin(app: FastifyInstance) {
                 }
             ],
             tags: [
-                { name: "DB Health", description: "System Status & Health Checks" },
+                { name: "System Health", description: "System Status & Health Checks" },
                 { name: "User Auth", description: "Customer Authentication & Profile" },
                 { name: "Admin Auth", description: "Internal Administrative Access" },
                 { name: "Admin Users", description: "User Management for Admins" },

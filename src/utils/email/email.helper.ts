@@ -1,4 +1,5 @@
 import { sendEmail } from "./email.service.js";
+export { sendEmail };
 import { buildOtpTemplate } from "./templates.js";
 
 /**

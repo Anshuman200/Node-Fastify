@@ -1,11 +1,12 @@
 import "fastify";
+import { Queue } from "bullmq";
 import { JWT } from "@fastify/jwt";
 import { Redis } from "ioredis";
 
 /**
  * 🧠 Shared User Type (Single Source of Truth)
  */
-type AuthUser = {
+export type AuthUser = {
   id: string;
   email?: string;
   userName?: string;
@@ -19,6 +20,13 @@ declare module "fastify" {
   interface FastifyInstance {
     jwt: JWT;
     redis: Redis;
+
+    // 🚜 BullMQ Queues
+    queues: {
+      email: Queue;
+      notification: Queue;
+      analytics: Queue;
+    };
 
     // 🔐 Secrets (from AWS / env)
     secrets: {

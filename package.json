@@ -8,7 +8,9 @@
   "main": "server.ts",
   "scripts": {
     "dev": "tsx watch server.ts",
+    "dev:worker": "tsx watch src/queue/worker.ts",
     "start": "npm run build && node dist/server.js",
+    "worker": "node dist/queue/worker.js",
     "build": "tsc",
     "clean": "rm -rf dist",
     "lint": "eslint . --fix",
@@ -30,6 +32,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.1029.0",
+    "@bull-board/api": "^7.0.0",
+    "@bull-board/fastify": "^7.0.0",
     "@fastify/basic-auth": "^6.2.0",
     "@fastify/compress": "^8.3.1",
     "@fastify/cookie": "^11.0.2",
@@ -44,9 +48,11 @@
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.5",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.76.2",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
     "fastify": "^5.8.4",
+    "ioredis": "^5.10.1",
     "mongoose": "^9.4.1",
     "resend": "^6.10.0",
     "xss": "^1.0.15"

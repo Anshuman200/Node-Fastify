@@ -23,6 +23,7 @@ import compressPlugin from "./plugins/compress.js";
 import basicAuthPlugin from "./plugins/basic-auth.js";
 import swaggerPlugin from "./plugins/swagger.js";
 import welcomePlugin from "./plugins/welcome.js";
+import queuePlugin from "./plugins/queues.js";
 
 // Routes
 import authRoutes from "./modules/auth/auth.route.js";
@@ -92,6 +93,7 @@ const buildApp = async (): Promise<FastifyInstance> => {
     await app.register(basicAuthPlugin);
     await app.register(swaggerPlugin);
     await app.register(welcomePlugin);
+    await app.register(queuePlugin);
 
     /**
      * 🔹 7. Static Assets

@@ -1,7 +1,8 @@
+import { FastifyInstance } from "fastify";
 import { Model, Document } from "mongoose";
 import { generateOtp } from "./user.helper.js";
-import { sendPasswordResetEmail } from "../../utils/email/email.helper.js";
-import { env } from "../../config/env.js";
+import { addEmailJob } from "../../queue/jobs/email.job.js";
+import { JobPriority } from "../../queue/types.js";
 
 interface AuthEntity extends Document {
     email: string;
@@ -16,11 +17,11 @@ interface AuthEntity extends Document {
 
 /**
  * 🔐 Shared business logic for Forgot Password
+ * @param {FastifyInstance} app - Fastify instance for queue access
  * @param {Model<AuthEntity>} AuthModel - Mongoose Model (User or Admin)
  * @param {String} email - Encoded/Sanitized email
- * @returns {Object} - Success status and message
  */
-export const forgotPasswordService = async (AuthModel: Model<any>, email: string) => {
+export const forgotPasswordService = async (app: FastifyInstance, AuthModel: Model<any>, email: string) => {
     const user = await AuthModel.findOne({ email });
     if (!user) throw new Error("Entity not found with this email");
 
@@ -29,16 +30,18 @@ export const forgotPasswordService = async (AuthModel: Model<any>, email: string
     user.otpExpires = otpExpires;
     await user.save();
 
-    await sendPasswordResetEmail(env.RESEND_API_KEY, user.email, otp);
+    await addEmailJob(app, {
+        to: user.email,
+        subject: "Password Reset OTP",
+        type: "RESET_PASSWORD",
+        otp: otp
+    }, { priority: JobPriority.HIGH });
+    
     return { success: true, message: "Reset OTP sent to your email" };
 };
 
 /**
  * 🔐 Shared business logic for OTP Verification
- * @param {Model<any>} AuthModel - Mongoose Model
- * @param {String} email - Encoded email
- * @param {String} otp - The OTP to verify
- * @returns {Object} - Success status and the verified entity
  */
 export const verifyOtpService = async (AuthModel: Model<any>, email: string, otp: string) => {
     const user = await AuthModel.findOne({
@@ -62,11 +65,6 @@ export const verifyOtpService = async (AuthModel: Model<any>, email: string, otp
 
 /**
  * 🔐 Shared business logic for Reset Password
- * @param {Model<any>} AuthModel - Mongoose Model
- * @param {String} email - Encoded email
- * @param {String} otp - The OTP to verify
- * @param {String} newPassword - The new password (unhashed)
- * @returns {Object} - Success status
  */
 export const resetPasswordService = async (AuthModel: Model<any>, email: string, otp: string, newPassword: string) => {
     const user = await AuthModel.findOne({
@@ -87,10 +85,6 @@ export const resetPasswordService = async (AuthModel: Model<any>, email: string,
 
 /**
  * 🔐 Shared business logic for Change Password
- * @param {any} userDoc - The Mongoose document (User or Admin)
- * @param {String} oldPassword - The currently provided password
- * @param {String} newPassword - The new password
- * @returns {Object} - Success status
  */
 export const changePasswordService = async (userDoc: any, oldPassword: string, newPassword: string) => {
     const isMatch = await userDoc.comparePassword(oldPassword);
