@@ -12,16 +12,26 @@ import { authorize } from "../../core/security/rbac.middleware.js";
 
 export default async function authRoutes(app: FastifyInstance) {
   // Public Routes
-  app.post("/login", { schema: loginSchema }, authController.login);
+  app.post("/login", { 
+    schema: {
+        ...loginSchema,
+        tags: ["User Auth"],
+        summary: "Standard user/admin login"
+    } 
+  }, authController.login);
 
   // Example Protected Route: Multi-Layer Security
-  // JWT + API Key + Signature + RBAC (Admin)
   app.get("/secure-admin-check", {
+    schema: {
+        tags: ["Admin Auth"],
+        summary: "Multi-layer security check",
+        security: [{ bearerAuth: [] }]
+    },
     preHandler: [
-      verifyApiKey,    // Layer 1: API Key
-      verifySignature, // Layer 2: HMAC Signature
-      authenticate,    // Layer 3: JWT Auth
-      authorize(["admin"]) // Layer 4: RBAC
+      verifyApiKey,    
+      verifySignature, 
+      authenticate,    
+      authorize(["admin"]) 
     ]
   }, async (request, reply) => {
     return reply.send({
@@ -32,6 +42,21 @@ export default async function authRoutes(app: FastifyInstance) {
   });
 
   // Regular Protected Routes
-  app.get("/profile", { preHandler: [authenticate] }, authController.getUserDetail);
-  app.post("/logout", { preHandler: [authenticate] }, authController.logout);
+  app.get("/profile", { 
+    schema: {
+        tags: ["User Auth"],
+        summary: "Get current profile",
+        security: [{ bearerAuth: [] }]
+    },
+    preHandler: [authenticate] 
+  }, authController.getUserDetail);
+
+  app.post("/logout", { 
+    schema: {
+        tags: ["User Auth"],
+        summary: "Logout user",
+        security: [{ bearerAuth: [] }]
+    },
+    preHandler: [authenticate] 
+  }, authController.logout);
 }

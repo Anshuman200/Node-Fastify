@@ -79,7 +79,14 @@ const buildApp = async (): Promise<FastifyInstance> => {
     await app.register(securityPlugin);
 
     /**
-     * 🔹 6. Static Assets
+     * 🔹 6. Docs & UI (Register BEFORE routes to pick up schemas)
+     */
+    await app.register(basicAuthPlugin);
+    await app.register(swaggerPlugin);
+    await app.register(welcomePlugin);
+
+    /**
+     * 🔹 7. Static Assets
      */
     await app.register(fastifyStatic, {
         root: path.join(process.cwd(), "public"),
@@ -87,23 +94,16 @@ const buildApp = async (): Promise<FastifyInstance> => {
     });
 
     /**
-     * 🔹 7. Health Routes (early availability)
+     * 🔹 8. Health Routes
      */
     await app.register(healthRoutes, { prefix: "/api/v1" });
 
     /**
-     * 🔹 8. API Routes
+     * 🔹 9. API Routes
      */
     await app.register(authRoutes, { prefix: "/api/v1/auth" });
     await app.register(adminRoutes, { prefix: "/api/v1/admin" });
     await app.register(systemRoutes, { prefix: "/api/v1/common" });
-
-    /**
-     * 🔹 9. Docs & UI
-     */
-    await app.register(basicAuthPlugin);
-    await app.register(swaggerPlugin);
-    await app.register(welcomePlugin);
 
     /**
      * 🔹 🔟 Not Found Handler

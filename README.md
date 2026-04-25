@@ -65,16 +65,20 @@ npm run build
 npm start
 ```
 
-## 🛣️ Core API Endpoints
+## 📖 API Documentation
 
-### Auth Module (`/api/v1/auth`)
-- `POST /login`: Authenticate and receive tokens.
-- `GET /profile`: Get current user/admin profile details.
-- `POST /logout`: Revoke tokens and end session.
+Once the server is running, visit the interactive Swagger documentation at:
+👉 `http://localhost:3333/api/v1/documentation`
 
-### Admin Module (`/api/v1/admin`)
-- `GET /profile`: Admin-specific profile view.
-- `GET /users`: Paginated user management (Admin only).
+### Core Endpoints
+
+| Category | Endpoint | Method | Description |
+| :--- | :--- | :--- | :--- |
+| **Auth** | `/api/v1/user/signup` | `POST` | Create a new user account |
+| **Auth** | `/api/v1/user/login` | `POST` | Standard user login |
+| **Profile** | `/api/v1/user/profile` | `GET` | Get current user's profile |
+| **Admin** | `/api/v1/admin/login` | `POST` | Administrative login |
+| **Admin** | `/api/v1/admin/profile` | `GET` | Get admin profile details |
 
 ## 📂 Project Structure
 
