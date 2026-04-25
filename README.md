@@ -1,45 +1,41 @@
-# 🚀 High-Performance Fastify TypeScript Backend
+# 🚀 Premium Fastify TypeScript API Engine
 
-A production-grade, highly scalable API architecture built with Node.js, Fastify, and TypeScript. This backend is engineered for performance, security-first operations, and clean modular maintainability.
+A production-grade, high-performance API architecture built with **Node.js**, **Fastify**, and **TypeScript**. This engine is designed for high scalability, security-first operations, and an elite developer experience.
+
+## ✨ Key Features
+
+- **Schema-First API Documentation**: Automated OpenAPI 3.0 specs using `@fastify/swagger`.
+- **Premium Swagger UI**: Customized dark-themed interface with hidden search bars and protected access.
+- **Auto-Seeding**: Self-healing database that automatically seeds default Admin and System Content (Terms, FAQ, Privacy) on startup.
+- **AWS Secrets Manager**: Enterprise-grade secret orchestration for production environments.
+- **Multi-Layer Security**: JWT (Access/Refresh), HMAC Signatures, API Keys, and RBAC middleware.
+- **Real-time Performance**: Redis-backed session management and rate limiting.
 
 ## 🏗️ Architecture Overview
 
-The system follows a strict **Layered Architecture** pattern to ensure separation of concerns and testability:
+The system follows a strict **Modular Layered Architecture** to ensure clean separation of concerns:
 
-- **Entry Layer (`server.ts`)**: Handles process lifecycle, graceful shutdowns, and global error handling.
-- **Bootstrap Layer (`bootstrap.ts`)**: Manages plugin orchestration and dependency injection order.
-- **Route Layer**: Fastify route definitions with strict JSON Schema validation.
-- **Controller Layer**: Orchestrates requests and maps them to business services.
-- **Service Layer**: Contains core business logic, independent of transport protocols.
-- **Repository Layer**: Optimized database access using Mongoose with `.lean()` and advanced aggregations.
+- **Schema Layer (`.schema.ts`)**: Centralized source of truth for Request Validation and Swagger Documentation.
+- **Route Layer**: Fastify routes with strict type-safety and multi-layer security hooks.
+- **Controller Layer**: Orchestrates business logic and response formatting.
+- **Service Layer**: Pure business logic, independent of transport protocols.
+- **Repository Layer**: Optimized Mongoose access with advanced indexing and `.lean()` performance.
 
-## 🛡️ Security Suite (Production Ready)
+## 🛡️ Security Configuration
 
-- **Multi-Layer Authentication**: 
-    - **API Key Verification**: Timing-safe client identification.
-    - **HMAC Request Signatures**: SHA256 integrity checks with stable payload normalization.
-    - **JWT (Access/Refresh Tokens)**: Secure token lifecycle with Redis-backed session control.
-    - **RBAC**: Granular Role-Based Access Control middleware.
-- **Replay Protection**: Nonce-based protection using Redis to prevent intercepted request re-execution.
-- **Infrastructure Security**: CSRF protection, Helmet (HSTS, CSP), XSS sanitization, and rate-limiting.
-- **AWS Secrets Manager**: Integrated secret loading for production environments.
+The engine supports both `.env` and **AWS Secrets Manager**.
 
-## ⚡ Performance Optimizations
-
-- **Connection Pooling**: Advanced MongoDB connection management with `minPoolSize` and `maxPoolSize` control.
-- **Cache-Aside Pattern**: Redis caching utility for high-frequency data access.
-- **Database Efficiency**: Strict indexing on critical fields and optimized `.lean()` queries for read-heavy operations.
-- **Compression**: Gzip/Brotli support for reduced payload transfer times.
-
-## 🛠️ Technology Stack
-
-- **Runtime**: Node.js (v20+)
-- **Framework**: Fastify (v5+)
-- **Language**: TypeScript (ESM / NodeNext)
-- **Database**: MongoDB (Mongoose)
-- **Caching**: Redis (ioredis)
-- **Email**: Resend
-- **Documentation**: Swagger / OpenAPI
+### AWS Secrets Mapping
+If using AWS, the following keys are mapped automatically:
+| Secret Key | Mapping | Description |
+| :--- | :--- | :--- |
+| `MONGODB_URI` | `MONGODB_URI` | Connection string for MongoDB |
+| `REDIS_HOST` | `REDIS_HOST` | Redis endpoint |
+| `API_KEY` | `API_KEY_SECRET` | Client-side API Key |
+| `SWAGGER_USER` | `DOCS_AUTH.username` | Basic Auth for Swagger UI |
+| `SWAGGER_PASSWORD` | `DOCS_AUTH.password` | Basic Auth for Swagger UI |
+| `JWT_SECRET` | `JWT_SECRET` | Signing key for tokens |
+| `SIGNATURE_SECRET` | `SIGNATURE_SECRET` | HMAC Signature secret |
 
 ## 🚀 Getting Started
 
@@ -49,55 +45,52 @@ npm install
 ```
 
 ### 2. Environment Configuration
-The app supports both `.env` and **AWS Secrets Manager**.
 ```bash
 cp .env.example .env
 ```
 
-### 3. Development
+### 3. Running the API
 ```bash
+# Development (with tsx watch)
 npm run dev
-```
 
-### 4. Production Build
-```bash
+# Production Build
 npm run build
 npm start
 ```
 
 ## 📖 API Documentation
 
-Once the server is running, visit the interactive Swagger documentation at:
-👉 `http://localhost:3333/api/v1/documentation`
+The interactive Swagger documentation is available at:
+👉 `http://localhost:3333/swagger`
 
-### Core Endpoints
+*Note: Access is protected by Basic Auth as configured in your AWS Secrets.*
 
-| Category | Endpoint | Method | Description |
-| :--- | :--- | :--- | :--- |
-| **Auth** | `/api/v1/user/signup` | `POST` | Create a new user account |
-| **Auth** | `/api/v1/user/login` | `POST` | Standard user login |
-| **Profile** | `/api/v1/user/profile` | `GET` | Get current user's profile |
-| **Admin** | `/api/v1/admin/login` | `POST` | Administrative login |
-| **Admin** | `/api/v1/admin/profile` | `GET` | Get admin profile details |
+### Core Modules
+
+| Module | Base Path | Description |
+| :--- | :--- | :--- |
+| **Auth** | `/api/v1/auth` | User/Admin authentication & profile |
+| **Admin** | `/api/v1/admin` | User management & administrative controls |
+| **Common** | `/api/v1/common` | System content (Terms, Privacy, FAQ) |
+| **Health** | `/api/v1/health` | System status & infrastructure checks |
 
 ## 📂 Project Structure
 
 ```text
 src/
-├── config/         # Environment & AWS Secrets config
-├── core/           # Middlewares (Auth, Signature, RBAC)
-├── db/             # Models & Connection management
-├── modules/        # Feature modules (Auth, Admin, Users)
+├── config/         # Env & AWS Secrets orchestration
+├── core/           # Security middlewares (Auth, HMAC, RBAC)
+├── db/             # Mongoose Models & Connection logic
+├── modules/        # Feature Modules (Auth, Admin, Users)
 │   ├── [module]/
 │   │   ├── [name].controller.ts
-│   │   ├── [name].service.ts
-│   │   ├── [name].repository.ts
 │   │   ├── [name].route.ts
-│   │   └── [name].schema.ts
-├── plugins/        # Fastify plugins (Redis, JWT, DB)
-├── utils/          # Shared utilities (Cache, Crypto, Response)
-└── server.ts       # Application entry point
+│   │   └── [name].schema.ts   <-- Validation & Docs
+├── plugins/        # Fastify Plugins (JWT, Redis, Swagger, Seeder)
+├── utils/          # Shared Utilities (Response, Crypto, Seeder)
+└── server.ts       # Application Entry Point
 ```
 
 ---
-*Maintained by Ansh*
+*Maintained with excellence by Ansh*
