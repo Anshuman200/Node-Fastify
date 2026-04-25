@@ -23,8 +23,8 @@ export const DEFAULT_ADMIN = {
 } as const;
 
 export const DOCS_AUTH = {
-    username: process.env.DOCS_USERNAME || "admin",
-    password: process.env.DOCS_PASSWORD || "admin123"
+    username: process.env.SWAGGER_USER || "admin",
+    password: process.env.SWAGGER_PASSWORD || "admin123"
 } as const;
 
 export const MAX_REQUEST_PER_MINUTE = 100;
