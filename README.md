@@ -1,54 +1,88 @@
-# 🚀 Node-Fastify TypeScript Migration
+# 🚀 High-Performance Fastify TypeScript Backend
 
-A robust, production-ready Fastify API and MongoDB application, now fully migrated to **TypeScript** for enhanced type safety and maintainability.
+A production-grade, highly scalable API architecture built with Node.js, Fastify, and TypeScript. This backend is engineered for performance, security-first operations, and clean modular maintainability.
 
-## ✨ Core Features
+## 🏗️ Architecture Overview
 
-- **🚀 Fastify (v5+)**: High-performance web framework.
-- **🛡️ Secure Auth**: JWT-based authentication with Access & Refresh tokens.
-- **🔑 RBAC**: Role-based access control (Admin vs. User).
-- **⚡ Redis Caching**: Fast response times with ioredis.
-- **🌱 MongoDB/Mongoose**: Schema-based data modeling with strict TypeScript interfaces.
-- **🔍 Sanitization & Security**: Seamless CSRF, Helmet, and XSS protection.
-- **📄 API Docs**: Auto-generated Swagger documentation.
-- **🧪 Modern Tooling**: ESLint (v9+ Flat Config) and Prettier for code quality.
+The system follows a strict **Layered Architecture** pattern to ensure separation of concerns and testability:
 
-## 🛠️ TypeScript Architecture
+- **Entry Layer (`server.ts`)**: Handles process lifecycle, graceful shutdowns, and global error handling.
+- **Bootstrap Layer (`bootstrap.ts`)**: Manages plugin orchestration and dependency injection order.
+- **Route Layer**: Fastify route definitions with strict JSON Schema validation.
+- **Controller Layer**: Orchestrates requests and maps them to business services.
+- **Service Layer**: Contains core business logic, independent of transport protocols.
+- **Repository Layer**: Optimized database access using Mongoose with `.lean()` and advanced aggregations.
 
-The project has been fully migrated to TypeScript using **NodeNext** resolution for ESM compatibility:
-- **Strict Typing**: All models, services, and controllers use TS interfaces.
-- **Type Providers**: Fastify routes utilize type providers for compile-time schema validation.
-- **Declaration Merging**: Extended Fastify types for `jwt`, `redis`, and authenticated `user` objects.
+## 🛡️ Security Suite (Production Ready)
+
+- **Multi-Layer Authentication**: 
+    - **API Key Verification**: Timing-safe client identification.
+    - **HMAC Request Signatures**: SHA256 integrity checks with stable payload normalization.
+    - **JWT (Access/Refresh Tokens)**: Secure token lifecycle with Redis-backed session control.
+    - **RBAC**: Granular Role-Based Access Control middleware.
+- **Replay Protection**: Nonce-based protection using Redis to prevent intercepted request re-execution.
+- **Infrastructure Security**: CSRF protection, Helmet (HSTS, CSP), XSS sanitization, and rate-limiting.
+- **AWS Secrets Manager**: Integrated secret loading for production environments.
+
+## ⚡ Performance Optimizations
+
+- **Connection Pooling**: Advanced MongoDB connection management with `minPoolSize` and `maxPoolSize` control.
+- **Cache-Aside Pattern**: Redis caching utility for high-frequency data access.
+- **Database Efficiency**: Strict indexing on critical fields and optimized `.lean()` queries for read-heavy operations.
+- **Compression**: Gzip/Brotli support for reduced payload transfer times.
+
+## 🛠️ Technology Stack
+
+- **Runtime**: Node.js (v20+)
+- **Framework**: Fastify (v5+)
+- **Language**: TypeScript (ESM / NodeNext)
+- **Database**: MongoDB (Mongoose)
+- **Caching**: Redis (ioredis)
+- **Email**: Resend
+- **Documentation**: Swagger / OpenAPI
 
 ## 🚀 Getting Started
 
-### 1. Install Dependencies
+### 1. Installation
 ```bash
 npm install
 ```
 
-### 2. Environment Setup
-Create a `.env` file from the example:
+### 2. Environment Configuration
+The app supports both `.env` and **AWS Secrets Manager**.
 ```bash
 cp .env.example .env
 ```
 
-### 3. Run in Development
+### 3. Development
 ```bash
 npm run dev
 ```
 
-### 4. Build for Production
+### 4. Production Build
 ```bash
 npm run build
 npm start
 ```
 
-## 📜 Scripts
+## 📂 Project Structure
 
-- `npm run dev`: Runs the app using `tsx watch` for instant feedback.
-- `npm run build`: Compiles TS to JS in the `dist/` directory.
-- `npm run lint`: Runs ESLint on the entire project with auto-fix.
+```text
+src/
+├── config/         # Environment & AWS Secrets config
+├── core/           # Middlewares (Auth, Signature, RBAC)
+├── db/             # Models & Connection management
+├── modules/        # Feature modules (Auth, Admin, Users)
+│   ├── [module]/
+│   │   ├── [name].controller.ts
+│   │   ├── [name].service.ts
+│   │   ├── [name].repository.ts
+│   │   ├── [name].route.ts
+│   │   └── [name].schema.ts
+├── plugins/        # Fastify plugins (Redis, JWT, DB)
+├── utils/          # Shared utilities (Cache, Crypto, Response)
+└── server.ts       # Application entry point
+```
 
 ---
-*Created by Ansh*
+*Maintained by Ansh*
