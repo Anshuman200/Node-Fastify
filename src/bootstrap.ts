@@ -6,6 +6,7 @@ import { env, initializeConfig } from "./config/env.js";
 // Infrastructure
 import dbPlugin from "./plugins/db.js";
 import redisPlugin from "./plugins/redis.js";
+import seederPlugin from "./plugins/seeder.js";
 import securityPlugin from "./plugins/security.js";
 
 // Core
@@ -48,6 +49,7 @@ const buildApp = async (): Promise<FastifyInstance> => {
                 keywords: ["example"] // ✅ Allow OpenAPI 'example' keyword in schemas
             }
         },
+        pluginTimeout: 30000, // ✅ Increase timeout for heavy plugins (like seeder)
         trustProxy: true,
         bodyLimit: 10 * 1024 * 1024, // ✅ 10MB safer default
     });
@@ -77,6 +79,7 @@ const buildApp = async (): Promise<FastifyInstance> => {
      */
     await app.register(redisPlugin);
     await app.register(dbPlugin);
+    await app.register(seederPlugin);
 
     /**
      * 🔹 5. Custom Security Decorators

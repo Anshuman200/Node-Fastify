@@ -11,7 +11,7 @@ import { generateAdminTokens } from "./admin.helper.js";
 import { buildCacheKey } from "../users/user.helper.js";
 import { getCachedData, setCachedData, invalidateCache } from "../../core/cache/redisService.js";
 import { getUsersService } from "../users/user.service.js";
-import { JWT_EXPIRY } from "../../constants/config.js";
+import { JWT_EXPIRY, DEFAULT_ADMIN } from "../../constants/config.js";
 
 // --- Validations & Types ---
 
@@ -66,12 +66,13 @@ export const loginAdmin = async (req: FastifyRequest<any>, reply: FastifyReply) 
         const body = req.body as LoginBody;
         const email = toTrimAndLower(body?.email);
         const password = toTrim(body?.password);
+        console.log('body', body)
 
         if (!email || !password) {
             return sendError({ reply, statusCode: HTTP_STATUS.BAD_REQUEST, message: MESSAGES.ADMIN.INVALID_CREDENTIALS });
         }
 
-        const admin = await AdminModels.findOne({ email });
+        const admin = await AdminModels.findOne({ email }).select("+password");
         if (!admin) {
             return sendError({ reply, statusCode: HTTP_STATUS.NOT_FOUND, message: MESSAGES.ADMIN.ADMIN_NOT_FOUND });
         }
