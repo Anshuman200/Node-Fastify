@@ -1,5 +1,5 @@
 import { JWT_EXPIRY, OTP_CONFIG } from "../../constants/config.js";
-import { IUser } from "./user.model.js";
+import { IUser } from "../../db/models/user.model.js";
 
 /**
  * 🔑 Helper for cache key
@@ -18,11 +18,11 @@ export const buildCacheKey = (query: any): string => {
  */
 export const generateTokens = (jwt: any, user: IUser) => {
     const accessToken = jwt.sign(
-        { id: user._id, email: user.email, userName: user.userName, userType: user.userType },
+        { id: (user as any)._id, email: user.email, userName: user.userName, userType: user.userType },
         { expiresIn: JWT_EXPIRY.ACCESS_TOKEN }
     );
     const refreshToken = jwt.sign(
-        { id: user._id, userName: user.userName },
+        { id: (user as any)._id, userName: user.userName },
         { expiresIn: JWT_EXPIRY.REFRESH_TOKEN }
     );
     return { accessToken, refreshToken };

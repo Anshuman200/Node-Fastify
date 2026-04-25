@@ -43,6 +43,11 @@ const buildApp = async (): Promise<FastifyInstance> => {
         logger: {
             level: env.NODE_ENV === "development" ? "debug" : "info"
         },
+        ajv: {
+            customOptions: {
+                keywords: ["example"] // ✅ Allow OpenAPI 'example' keyword in schemas
+            }
+        },
         trustProxy: true,
         bodyLimit: 10 * 1024 * 1024, // ✅ 10MB safer default
     });

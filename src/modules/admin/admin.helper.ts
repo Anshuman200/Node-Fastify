@@ -1,5 +1,5 @@
 import { JWT_EXPIRY } from "../../constants/config.js";
-import { IAdmin } from "./admin.model.js";
+import { IAdmin } from "../../db/models/admin.model.js";
 
 /**
  * 🔑 Helper for generating admin tokens
@@ -9,11 +9,11 @@ import { IAdmin } from "./admin.model.js";
  */
 export const generateAdminTokens = (jwt: any, admin: IAdmin) => {
     const accessToken = jwt.sign(
-        { id: admin._id, email: admin.email, userName: admin.userName, userType: admin.userType },
+        { id: (admin as any)._id, email: admin.email, userName: admin.userName, userType: admin.userType },
         { expiresIn: JWT_EXPIRY.ACCESS_TOKEN }
     );
     const refreshToken = jwt.sign(
-        { id: admin._id, userName: admin.userName },
+        { id: (admin as any)._id, userName: admin.userName },
         { expiresIn: JWT_EXPIRY.REFRESH_TOKEN }
     );
     return { accessToken, refreshToken };

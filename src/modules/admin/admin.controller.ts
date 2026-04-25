@@ -90,7 +90,7 @@ export const loginAdmin = async (req: FastifyRequest<any>, reply: FastifyReply) 
 
         // 🔒 Set encrypted session cookie (Industry Best Practice)
         req.session.set("user", {
-            id: admin._id,
+            id: (admin as any)._id,
             email: admin.email,
             userName: admin.userName,
             userType: admin.userType

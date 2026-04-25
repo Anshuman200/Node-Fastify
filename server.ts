@@ -43,7 +43,7 @@ async function start() {
         process.on("SIGTERM", shutdown);
 
     } catch (err: any) {
-        app.log.error("❌ Startup failed", err);
+        console.error("❌ Startup failed ERROR:", err);
         process.exit(1);
     }
 }

@@ -9,7 +9,7 @@ type AuthUser = {
   id: string;
   email?: string;
   userName?: string;
-  userType: "user" | "admin";
+  userType: "user" | "admin" | "sub-admin" | "guest";
 };
 
 /**
@@ -55,7 +55,7 @@ declare module "@fastify/jwt" {
   interface FastifyJWT {
     payload: {
       id: string;
-      userType: "user" | "admin";
+      userType: "user" | "admin" | "sub-admin" | "guest";
       email?: string;
       userName?: string;
       type?: "access" | "refresh";

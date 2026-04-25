@@ -1,32 +1,24 @@
 import { FastifyInstance } from "fastify";
 import { authController } from "./auth.controller.js";
-import { loginSchema } from "./auth.schema.js";
+import * as schemas from "./auth.schema.js";
 import { authenticate } from "../../core/security/auth.middleware.js";
 import { verifyApiKey } from "../../core/security/apiKey.middleware.js";
 import { verifySignature } from "../../core/security/signature.middleware.js";
 import { authorize } from "../../core/security/rbac.middleware.js";
 
 /**
- * 🛣️ Auth Routes
+ * 🛣️ Auth Routes (Schema Integrated)
  */
 
 export default async function authRoutes(app: FastifyInstance) {
-  // Public Routes
+  // 🔓 Public Routes
   app.post("/login", { 
-    schema: {
-        ...loginSchema,
-        tags: ["User Auth"],
-        summary: "Standard user/admin login"
-    } 
+    schema: schemas.loginSchema 
   }, authController.login);
 
-  // Example Protected Route: Multi-Layer Security
+  // 🛡️ Protected Routes (Multi-Layer Security)
   app.get("/secure-admin-check", {
-    schema: {
-        tags: ["Admin Auth"],
-        summary: "Multi-layer security check",
-        security: [{ bearerAuth: [] }]
-    },
+    schema: schemas.secureCheckSchema,
     preHandler: [
       verifyApiKey,    
       verifySignature, 
@@ -41,22 +33,14 @@ export default async function authRoutes(app: FastifyInstance) {
     });
   });
 
-  // Regular Protected Routes
+  // 👤 Regular Protected Routes
   app.get("/profile", { 
-    schema: {
-        tags: ["User Auth"],
-        summary: "Get current profile",
-        security: [{ bearerAuth: [] }]
-    },
+    schema: schemas.profileSchema,
     preHandler: [authenticate] 
   }, authController.getUserDetail);
 
   app.post("/logout", { 
-    schema: {
-        tags: ["User Auth"],
-        summary: "Logout user",
-        security: [{ bearerAuth: [] }]
-    },
+    schema: schemas.logoutSchema,
     preHandler: [authenticate] 
   }, authController.logout);
 }

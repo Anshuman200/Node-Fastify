@@ -1,4 +1,4 @@
-import * as repo from "./user.repository.js";
+import { userRepository } from "./user.repository.js";
 
 interface GetUsersParams {
     query: any;
@@ -8,12 +8,12 @@ interface GetUsersParams {
 
 export const getUsersService = async ({ query, skip, limit }: GetUsersParams) => {
     const [users, total] = await Promise.all([
-        repo.findUsers(query, {
+        userRepository.findUsers(query, {
             sort: { createdAt: -1 },
             skip,
             limit
         }),
-        repo.countUsers(query)
+        userRepository.countUsers(query)
     ]);
 
     return { users, total };
