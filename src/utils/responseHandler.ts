@@ -27,11 +27,8 @@ export const sendError = ({ reply, statusCode = HTTP_STATUS.INTERNAL_SERVER_ERRO
     const errorResponse: { success: boolean; message: string; error?: any } = {
         success: false,
         message,
+        ...(error && { error })
     };
-
-    if (error) {
-        errorResponse.error = error;
-    }
 
     return reply.status(statusCode).send(errorResponse);
 };

@@ -1,10 +1,11 @@
 export const ALLOWED_ORIGINS = [
     "http://localhost:3333",
-    "http://127.0.0.1:3333"
+    "http://127.0.0.1:3333",
+    "http://localhost:3000"
 ];
 
 export const JWT_EXPIRY = {
-    ACCESS_TOKEN: "15m",
+    ACCESS_TOKEN: "1m",
     REFRESH_TOKEN: "7d",
     REFRESH_TOKEN_REDIS: 7 * 24 * 60 * 60 // 7 days in seconds
 } as const;

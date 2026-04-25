@@ -117,6 +117,6 @@ export default fp(async function (fastify: FastifyInstance) {
         }
 
         // Default JSON response for API clients
-        return sendError(reply, HTTP_STATUS.NOT_FOUND, `Route ${request.method} ${request.url} not found`);
+        return sendError({ reply, statusCode: HTTP_STATUS.NOT_FOUND, message: `Route ${request.method} ${request.url} not found` });
     });
 });

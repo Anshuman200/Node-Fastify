@@ -38,7 +38,7 @@ export default async function adminRoutes(app: FastifyInstance) {
             summary: "Get current admin profile",
             security: [{ bearerAuth: [] }]
         }
-    }, authControllers.getMeAdmin);
+    }, authControllers.getAdminDetail);
 
 
     /**

@@ -1,35 +1,22 @@
 import fp from "fastify-plugin";
 import { FastifyInstance } from "fastify";
-import { connectRedis, disconnectRedis } from "../db/redis.js";
+import fastifyRedis from "@fastify/redis";
+import { env } from "../config/env.js";
+
+/**
+ * 🔌 Redis Plugin
+ * Integrates Redis for caching, session management, and rate limiting.
+ */
 
 export default fp(async function redisPlugin(app: FastifyInstance) {
-    const host = process.env.REDIS_HOST;
-    const port = process.env.REDIS_PORT;
-
-    if (!host || !port) {
-        app.log.error("❌ REDIS_HOST or REDIS_PORT is missing. Ensure it is set in AWS Secrets Manager or .env.");
-        process.exit(1);
-    }
-
-    const config = {
-        host: host as string,
-        port: port as string,
-        username: process.env.REDIS_USERNAME,
-        password: process.env.REDIS_PASSWORD,
-    };
-
-    try {
-        const client = await connectRedis(config, app.log);
-
-        app.decorate("redis", client);
-
-    } catch (error: any) {
-        app.log.error(`❌ Unable to connect Redis: ${error.message}`);
-        process.exit(1);
-    }
-
-    app.addHook("onClose", async (app) => {
-        await disconnectRedis(app.redis, app.log);
+    await app.register(fastifyRedis, {
+        host: env.REDIS_HOST,
+        port: env.REDIS_PORT,
+        password: env.REDIS_PASSWORD,
+        closeClient: true,
     });
 
-}, { name: "@fastify/redis" });
+    app.log.info("✅ Redis plugin registered");
+}, {
+    name: "redis",
+});

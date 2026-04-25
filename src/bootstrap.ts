@@ -1,57 +1,85 @@
 import Fastify, { FastifyInstance } from "fastify";
-import { seedAdmin } from "./db/seed.js";
 import path from "path";
-import { fileURLToPath } from "url";
 import fastifyStatic from "@fastify/static";
+import { env, initializeConfig } from "./config/env.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Infrastructure
+import dbPlugin from "./plugins/db.js";
+import redisPlugin from "./plugins/redis.js";
+import securityPlugin from "./plugins/security.js";
 
-
-// Routes
-import authRoutes from "./modules/auth/auth.routes.js";
-import adminRoutes from "./modules/admin/admin.routes.js";
-import healthRoutes from "./modules/health/health.routes.js";
-
-// Core Plugins
-import errorHandlerPlugin from "./plugins/error-handler.js";
+// Core
 import sanitizerPlugin from "./plugins/sanitizer.js";
-
-// Security Plugins
+import sessionPlugin from "./plugins/session.js";
 import helmetPlugin from "./plugins/helmet.js";
 import corsPlugin from "./plugins/cors.js";
 import csrfPlugin from "./plugins/csrf.js";
-
-// Infrastructure Plugins
-import redisPlugin from "./plugins/redis.js";
-import mongoPlugin from "./plugins/mongo.js";
-
-// Utility Plugins
 import jwtPlugin from "./plugins/jwt.js";
 import rateLimitPlugin from "./plugins/rate-limit.js";
+import compressPlugin from "./plugins/compress.js";
 
-// Swagger & UX
+// Docs & UI
 import basicAuthPlugin from "./plugins/basic-auth.js";
 import swaggerPlugin from "./plugins/swagger.js";
 import welcomePlugin from "./plugins/welcome.js";
+
+// Routes
+import authRoutes from "./modules/auth/auth.route.js";
+import adminRoutes from "./modules/admin/admin.routes.js";
+import healthRoutes from "./modules/health/health.routes.js";
+import systemRoutes from "./modules/common/content.routes.js";
+
+// Fallback
 import notFoundPlugin from "./plugins/not-found.js";
 
-// Performance
-import compressPlugin from "./plugins/compress.js";
+/**
+ * 🚀 Build Application (Production Ready)
+ */
 
 const buildApp = async (): Promise<FastifyInstance> => {
+    await initializeConfig();
+
     const app = Fastify({
         logger: {
-            level: "info"
+            level: env.NODE_ENV === "development" ? "debug" : "info"
         },
         trustProxy: true,
-        bodyLimit: 1048576 * 100,
-        connectionTimeout: 30000,
-        requestIdHeader: "x-request-id"
+        bodyLimit: 10 * 1024 * 1024, // ✅ 10MB safer default
     });
 
     /**
-     * 🔹 0. Static Assets
+     * 🔹 1. Core Security (FIRST)
+     */
+    await app.register(helmetPlugin);
+    await app.register(corsPlugin);
+    await app.register(compressPlugin);
+
+    /**
+     * 🔹 2. Core Middleware
+     */
+    await app.register(sanitizerPlugin);
+    await app.register(sessionPlugin);
+
+    /**
+     * 🔹 3. Auth & Security Layer
+     */
+    await app.register(jwtPlugin);
+    await app.register(csrfPlugin);
+    await app.register(rateLimitPlugin);
+
+    /**
+     * 🔹 4. Infrastructure (DB + Cache)
+     */
+    await app.register(redisPlugin);
+    await app.register(dbPlugin);
+
+    /**
+     * 🔹 5. Custom Security Decorators
+     */
+    await app.register(securityPlugin);
+
+    /**
+     * 🔹 6. Static Assets
      */
     await app.register(fastifyStatic, {
         root: path.join(process.cwd(), "public"),
@@ -59,59 +87,48 @@ const buildApp = async (): Promise<FastifyInstance> => {
     });
 
     /**
-     * 🔹 1. Core
+     * 🔹 7. Health Routes (early availability)
      */
-    await app.register(errorHandlerPlugin);
-    await app.register(sanitizerPlugin);
+    await app.register(healthRoutes, { prefix: "/api/v1" });
 
     /**
-     * 🔹 2. Security Layer
+     * 🔹 8. API Routes
      */
-    await app.register(helmetPlugin);
-    await app.register(corsPlugin);
-    await app.register(csrfPlugin);
+    await app.register(authRoutes, { prefix: "/api/v1/auth" });
+    await app.register(adminRoutes, { prefix: "/api/v1/admin" });
+    await app.register(systemRoutes, { prefix: "/api/v1/common" });
 
     /**
-     * 🔹 3. Infrastructure (CRITICAL)
-     * If these fail → app should not start
-     */
-    await app.register(mongoPlugin);
-    await seedAdmin(app.log);
-    await app.register(redisPlugin);
-
-    //   // 4. Utility Plugins
-    //   await app.register(fastifyMultipart, {
-    //     limits: { fileSize: MAX_FILE_SIZE }
-    //   });
-    /**
-     * 🔹 4. Auth & Rate Limit
-     */
-    await app.register(jwtPlugin);
-    await app.register(rateLimitPlugin);
-
-    /**
-     * 🔹 5. Performance
-     */
-    await app.register(compressPlugin);
-
-    /**
-     * 🔹 6. Swagger & Default Routes
+     * 🔹 9. Docs & UI
      */
     await app.register(basicAuthPlugin);
     await app.register(swaggerPlugin);
     await app.register(welcomePlugin);
 
     /**
-     * 🔹 7. Routes
-     */
-    app.register(authRoutes, { prefix: "/api/v1/user" });
-    app.register(adminRoutes, { prefix: "/api/v1/admin" });
-    app.register(healthRoutes, { prefix: "/api/v1" });
-
-    /**
-     * 🔹 8. Not Found (last)
+     * 🔹 🔟 Not Found Handler
      */
     await app.register(notFoundPlugin);
+
+    /**
+     * 🔹 11. Global Error Handler (ONLY ONE)
+     */
+    app.setErrorHandler((error: any, request, reply) => {
+        app.log.error(error);
+
+        const statusCode = error.statusCode || 500;
+
+        reply.status(statusCode).send({
+            success: false,
+            message:
+                statusCode >= 500
+                    ? "Internal Server Error"
+                    : error.message,
+            ...(env.NODE_ENV === "development" && {
+                stack: error.stack,
+            }),
+        });
+    });
 
     return app;
 };

@@ -1,42 +1,66 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import "fastify";
 import { JWT } from "@fastify/jwt";
 import { Redis } from "ioredis";
-import { IUser } from "../modules/users/user.model.js";
-import { IAdmin } from "../modules/admin/admin.model.js";
 
+/**
+ * 🧠 Shared User Type (Single Source of Truth)
+ */
+type AuthUser = {
+  id: string;
+  email?: string;
+  userName?: string;
+  userType: "user" | "admin";
+};
+
+/**
+ * 🔐 Fastify Instance Extensions
+ */
 declare module "fastify" {
   interface FastifyInstance {
     jwt: JWT;
     redis: Redis;
-    mongo: any;
+
+    // 🔐 Secrets (from AWS / env)
+    secrets: {
+      JWT_SECRET: string;
+      SIGNATURE_SECRET: string;
+      API_KEYS: Record<string, string>;
+    };
+
+    // 🔐 Auth methods
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authenticateAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authenticateUser: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 
   interface FastifyRequest {
-    user: {
-      id: string;
-      email?: string;
-      userName: string;
-      userType: string;
-    };
+    user: AuthUser;
+    client?: string; // API key client
   }
 }
 
+/**
+ * 🔐 Secure Session Types
+ */
+declare module "@fastify/secure-session" {
+  interface SessionData {
+    user: AuthUser;
+  }
+}
+
+/**
+ * 🔐 JWT Types (CRITICAL)
+ */
 declare module "@fastify/jwt" {
   interface FastifyJWT {
     payload: {
       id: string;
+      userType: "user" | "admin";
       email?: string;
-      userName: string;
-      userType: string;
+      userName?: string;
+      type?: "access" | "refresh";
     };
-    user: {
-      id: string;
-      email?: string;
-      userName: string;
-      userType: string;
-    };
+
+    user: AuthUser;
   }
 }

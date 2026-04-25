@@ -4,21 +4,11 @@ import fastifyCsrf from "@fastify/csrf-protection";
 import { FastifyInstance } from "fastify";
 
 export default fp(async function (fastify: FastifyInstance) {
-    // 1.  Register Cookie Plugin (Required for CSRF)
-    await fastify.register(fastifyCookie, {
-        secret: (process.env as any).COOKIE_SECRET || "supersecret_cookie_key"
-    });
+    // 1.  Cookie Plugin is already registered in session.ts
 
     // 2. Register CSRF Protection
     await fastify.register(fastifyCsrf, {
-        cookieKey: "csrf-token",
-        cookieOpts: {
-            signed: true,
-            httpOnly: true, // Frontend cannot read, only backend
-            sameSite: "strict",
-            path: "/",
-            secure: (process.env as any).NODE_ENV === "production"
-        },
+        sessionKey: "csrf-token", // Store secret in encrypted session
         getToken: (req: any) => req.headers["x-csrf-token"],
     });
 

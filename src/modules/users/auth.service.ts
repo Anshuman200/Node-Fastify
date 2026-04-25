@@ -1,6 +1,7 @@
 import { Model, Document } from "mongoose";
 import { generateOtp } from "./user.helper.js";
-import { sendPasswordResetEmail } from "../../core/email/emailService.js";
+import { sendPasswordResetEmail } from "../../utils/email/email.helper.js";
+import { env } from "../../config/env.js";
 
 interface AuthEntity extends Document {
     email: string;
@@ -28,7 +29,7 @@ export const forgotPasswordService = async (AuthModel: Model<any>, email: string
     user.otpExpires = otpExpires;
     await user.save();
 
-    await sendPasswordResetEmail(user.email, otp);
+    await sendPasswordResetEmail(env.RESEND_API_KEY, user.email, otp);
     return { success: true, message: "Reset OTP sent to your email" };
 };
 

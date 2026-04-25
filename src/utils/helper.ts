@@ -8,21 +8,6 @@ const toTrim = (str: string | undefined | null): string => {
     return str.trim();
 }
 
-const toLowerCase = (str: string | undefined | null): string => {
-    if (!str) return "";
-    return str.toLowerCase();
-}
-
-const toUpperCase = (str: string | undefined | null): string => {
-    if (!str) return "";
-    return str.toUpperCase();
-}
-
-const toTrimAndUpper = (str: string | undefined | null): string => {
-    if (!str) return "";
-    return str.trim().toUpperCase();
-}
-
 const toTrimAndNumber = (str: string | undefined | null): string | number => {
     if (!str) return 0;
     return str.trim().replace(/\D/g, "");
@@ -50,9 +35,6 @@ const formatEntityResponse = (entity: any, excludeFields: string[] = ["password"
 export {
     toTrimAndLower,
     toTrim,
-    toLowerCase,
-    toUpperCase,
-    toTrimAndUpper,
     toTrimAndNumber,
     formatEntityResponse
 }

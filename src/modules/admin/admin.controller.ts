@@ -4,12 +4,12 @@ import { MESSAGES } from "../../constants/messages.js";
 import { toTrim, toTrimAndLower, toTrimAndNumber, formatEntityResponse } from "../../utils/helper.js";
 import { ACCOUNT_STATUS } from "../../constants/status.js";
 import * as authService from "../users/auth.service.js";
-import { AdminModels } from "./admin.model.js";
+import { Admin as AdminModels } from "../../db/models/admin.model.js";
+import { User as UserModels } from "../../db/models/user.model.js";
 import { sendSuccess, sendError } from "../../utils/responseHandler.js";
 import { generateAdminTokens } from "./admin.helper.js";
 import { buildCacheKey } from "../users/user.helper.js";
 import { getCachedData, setCachedData, invalidateCache } from "../../core/cache/redisService.js";
-import { UserModels } from "../users/user.model.js";
 import { getUsersService } from "../users/user.service.js";
 import { JWT_EXPIRY } from "../../constants/config.js";
 
@@ -85,14 +85,16 @@ export const loginAdmin = async (req: FastifyRequest<any>, reply: FastifyReply) 
             return sendError({ reply, statusCode: HTTP_STATUS.FORBIDDEN, message: `Your admin account is ${admin.status}. Please contact the system owner.` });
         }
 
-        const { accessToken, refreshToken } = generateAdminTokens(req.server.jwt, admin);
-
-        admin.lastLogin = new Date();
         admin.isActive = true;
         await admin.save();
 
-        const cacheKey = `refreshToken:${admin.userName}`;
-        await req.server.redis.set(cacheKey, refreshToken, "EX", JWT_EXPIRY.REFRESH_TOKEN_REDIS);
+        // 🔒 Set encrypted session cookie (Industry Best Practice)
+        req.session.set("user", {
+            id: admin._id,
+            email: admin.email,
+            userName: admin.userName,
+            userType: admin.userType
+        });
 
         const adminResponse = formatEntityResponse(admin);
 
@@ -101,9 +103,7 @@ export const loginAdmin = async (req: FastifyRequest<any>, reply: FastifyReply) 
             statusCode: HTTP_STATUS.OK,
             message: MESSAGES.ADMIN.ADMIN_LOGIN_SUCCESS,
             data: {
-                admin: adminResponse,
-                accessToken,
-                refreshToken
+                admin: adminResponse
             }
         });
     } catch (error: any) {
@@ -337,6 +337,9 @@ export const logoutAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
 
         const cacheKey = `refreshToken:${userName}`;
         await req.server.redis.del(cacheKey);
+
+        // 🧹 Clear encrypted session
+        req.session.delete();
 
         return sendSuccess({ reply, statusCode: HTTP_STATUS.OK, message: "Admin logged out successfully" });
     } catch (error: any) {
