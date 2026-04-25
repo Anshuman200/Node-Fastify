@@ -21,7 +21,7 @@ export default async function authRoutes(app: FastifyInstance) {
       verifyApiKey,    // Layer 1: API Key
       verifySignature, // Layer 2: HMAC Signature
       authenticate,    // Layer 3: JWT Auth
-      authorize(["ADMIN"]) // Layer 4: RBAC
+      authorize(["admin"]) // Layer 4: RBAC
     ]
   }, async (request, reply) => {
     return reply.send({
@@ -32,5 +32,6 @@ export default async function authRoutes(app: FastifyInstance) {
   });
 
   // Regular Protected Routes
+  app.get("/profile", { preHandler: [authenticate] }, authController.getUserDetail);
   app.post("/logout", { preHandler: [authenticate] }, authController.logout);
 }

@@ -65,6 +65,17 @@ npm run build
 npm start
 ```
 
+## 🛣️ Core API Endpoints
+
+### Auth Module (`/api/v1/auth`)
+- `POST /login`: Authenticate and receive tokens.
+- `GET /profile`: Get current user/admin profile details.
+- `POST /logout`: Revoke tokens and end session.
+
+### Admin Module (`/api/v1/admin`)
+- `GET /profile`: Admin-specific profile view.
+- `GET /users`: Paginated user management (Admin only).
+
 ## 📂 Project Structure
 
 ```text

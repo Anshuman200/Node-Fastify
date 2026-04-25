@@ -19,7 +19,7 @@ export default async function adminRoutes(app: FastifyInstance) {
             }
         }
     }, adminController.loginAdmin);
-    
+
     // 🔥 Admin Logout
     app.post("/logout", {
         onRequest: [app.authenticateAdmin],
@@ -31,7 +31,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     }, adminController.logoutAdmin);
 
     // 🔥 Get me (Profile Detail)
-    app.get("/me", {
+    app.get("/profile", {
         onRequest: [app.authenticateAdmin],
         schema: {
             tags: ["Admin Auth"],
